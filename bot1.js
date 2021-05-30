@@ -1,13 +1,14 @@
 const { Telegraf, Context } = require('telegraf')
-var util = require('util');
+
 var mysql = require('mysql');
 var http = require('http');
-const { setTimeout } = require('timers');
+
+
 var con = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "smartirrigation",
+  host: "sql6.freesqldatabase.com",
+  user: "sql6415983",
+  password: "fTzsIJISDw",
+  database: "sql6415983",
 });
 
 const bot = new Telegraf('1556599404:AAFQ4t9bKhdC7KxSrUL40H1rIqHDusmxxII')
@@ -16,6 +17,7 @@ var id = 0;
 bot.start((ctx) => {
   ctx.reply("مرحباً")
   var userId = ctx.message.chat.id;
+  try{
   con.query("SELECT id FROM esp8266_user_binding WHERE userId=" + userId.toString() + "", function (err, id) {
 
     if (id == "") {
@@ -24,9 +26,10 @@ bot.start((ctx) => {
 
 
       bot.on('message', (ctx) => {
+        console.log(ctx);
         messageinput = 0;
         messageinput = ctx.update.message.text;
-        console.log(messageinput)
+       // console.log(messageinput)
         //ctx.reply(messageinput);;
         messageinput = messageinput.toString();
         messageinput = messageinput.split(" ")
@@ -34,54 +37,52 @@ bot.start((ctx) => {
         var newMessage = [];
         var count = 0;
         var i = 0;
-        // while (count < messageinput.length) {
-        // if (messageinput[count] != "") {
-
-        // newMessage[i] = messageinput[count];
-        //i++;
-        //}
-        //count++;
-        //}
+      
 
 
         var ID = messageinput[0].toString()
         try {
           var password = messageinput[1].toString();
         } catch (error) {
-          console.log("problemo")
+         
           ctx.reply("ادخل المعلومات")
 
         }
        
         // console.log(ID + password + "h");
         con.query("SELECT pass FROM esp8266_user_binding WHERE id=" + ID, function (err, pass) {
-          console.log(pass)
+          if (pass==undefined) {
+           ctx.reply("ادخل المعلومات")
+          }
+        
           if (pass != undefined && pass != "") {
-            // console.log(pass)
+     
             pass = JSON.stringify(pass[0]);
             pass = pass.replace(/{|}|"|:/g, "");
             pass = pass.replace(/pass/g, "");
             //console.log(pass)
             if (pass.toString() == password) {
-              console.log("hello");
+              
               con.query("SELECT ip FROM esp8266_user_binding WHERE id=" + ID, function (err, ip) {
          
                 ip = JSON.stringify(ip[0]);
                 ip = ip.replace(/{|}|"|:/g, "");
                 ip = ip.replace(/ip/g, "");
-                console.log(ip)
+             //   console.log(ip)
               
               con.query("INSERT INTO esp8266_user_binding (id, userId, pass, ip) VALUES (" + ID + ", " + userId.toString() + ", " + pass + ", '" + ip + "')");
               ctx.reply("تمت الاضافة بنجاح, يمكنك الان الاستفادة من جميع الميزات.")
             })
             }
-
+           
           }
         })
       })
       if (err) { console.log("error 66") }
     }
-  })
+  })}catch{
+    ctx.reply("ادخل المعلومات")
+  }
 
 
 
@@ -97,11 +98,11 @@ bot.hears('نسبة الضغط الجوي', (ctx) => {
   con.query("SELECT id FROM esp8266_user_binding WHERE userId=" + userId.toString(), function (err, id) {
     id = id[0]
     id = JSON.stringify(id);
-    console.log(id)
-    if (id != "[]") {
+  //  console.log(id)
+    if (id != "[]"&&id!=undefined) {
 
       id = id.replace(/{|}|id|:|"|\[|]|/g, "")
-      console.log(id);
+     // console.log(id);
 
       con.query("SELECT Pressure FROM smart_irrigation WHERE ID=" + id.toString() + " ORDER BY Date DESC LIMIT 1", function (err, prs) {
         if (err) {
@@ -127,34 +128,37 @@ bot.hears('نسبة الضغط الجوي', (ctx) => {
 
 bot.hears('درجة الحرارة', (ctx) => {
   var userId = ctx.message.chat.id;
-  con.query("SELECT id FROM esp8266_user_binding WHERE userId=" + userId.toString(), function (err, id) {
-    id = id[0]
-    id = JSON.stringify(id);
-    console.log(id)
-    if (id != "[]") {
-
-      id = id.replace(/{|}|id|:|"|\[|]|/g, "")
-      console.log(id);
-
-      con.query("SELECT Temp FROM smart_irrigation WHERE ID=" + id.toString() + " ORDER BY Date DESC LIMIT 1", function (err, temp) {
-        if (err) {
-          console.log("there's an error in temp fetching.")
-          ctx.reply("هناك عطل في المنصّة, الرجاء المحاولة لاحقاً");
-        }
-        else {
-          var Temp = JSON.stringify(temp);
-          Temp = Temp.replace(/]|{|}|"|\[/g, "");
-          Temp = Temp.replace(/:/g, "");
-          Temp = Temp.replace("Temp", "درجة الحرارة : ");
-          ctx.reply(Temp + " C ");
-
-        }
-      })
-    }
-    else {
-      ctx.reply("الرجاء الضغط على /start")
-    }
-  })
+ 
+    con.query("SELECT id FROM esp8266_user_binding WHERE userId=" + userId.toString(), function (err, id) {
+      id = id[0]
+      id = JSON.stringify(id);
+    //  console.log(id)
+      if (id != "[]" && id!=undefined) {
+  
+        id = id.replace(/{|}|id|:|"|\[|]|/g, "")
+        //console.log(id);
+  
+        con.query("SELECT Temp FROM smart_irrigation WHERE ID=" + id.toString() + " ORDER BY Date DESC LIMIT 1", function (err, temp) {
+          if (err) {
+            console.log("there's an error in temp fetching.")
+            ctx.reply("هناك عطل في المنصّة, الرجاء المحاولة لاحقاً");
+          }
+          else {
+            var Temp = JSON.stringify(temp);
+            Temp = Temp.replace(/]|{|}|"|\[/g, "");
+            Temp = Temp.replace(/:/g, "");
+            Temp = Temp.replace("Temp", "درجة الحرارة : ");
+            ctx.reply(Temp + " C ");
+  
+          }
+        })
+      }
+      else {
+        ctx.reply("الرجاء الضغط على /start")
+      }
+    })
+   
+ 
 })
 
 bot.hears('نسبة الرطوبة', (ctx) => {
@@ -162,8 +166,8 @@ bot.hears('نسبة الرطوبة', (ctx) => {
   con.query("SELECT id FROM esp8266_user_binding WHERE userId=" + userId.toString(), function (err, id) {
     id = id[0]
     id = JSON.stringify(id);
-    console.log(id)
-    if (id != "[]") {
+  console.log(id)
+    if (id != "[]"&&id!=undefined) {
 
       id = id.replace(/{|}|id|:|"|\[|]|/g, "")
       console.log(id);
@@ -195,10 +199,10 @@ bot.hears('تشغيل الريّ', (ctx) => {
     ip = ip[0]
     ip = JSON.stringify(ip);
     console.log(ip)
-    if (ip != "[]") {
+    if (ip != "[]" && ip!=undefined) {
 
       ip = ip.replace(/{|}|id|:|"|\[|]|ip|/g, "")
-      console.log(ip);
+     console.log(ip);
   con.connect(function (err) {
 
     var options = {
@@ -235,8 +239,6 @@ bot.hears('تشغيل الريّ', (ctx) => {
     request.end();
 
 
-    // process.on('uncaughtException', function (err) {
-
 
   });
 
@@ -257,7 +259,7 @@ bot.hears('توقيف الريّ', (ctx) => {
     ip = ip[0]
     ip = JSON.stringify(ip);
     console.log(ip)
-    if (ip != "[]") {
+    if (ip != "[]"&& ip!=undefined) {
 
       ip = ip.replace(/{|}|id|:|"|\[|]|ip|/g, "")
       console.log(ip);
@@ -307,7 +309,7 @@ bot.hears('تشغيل الوضع الآلي', (ctx) => {
     ip = ip[0]
     ip = JSON.stringify(ip);
     console.log(ip)
-    if (ip != "[]") {
+    if (ip != "[]"&& ip!=undefined) {
 
       ip = ip.replace(/{|}|id|:|"|\[|]|ip|/g, "")
       console.log(ip);
@@ -353,7 +355,7 @@ bot.hears('ايقاف الوضع الآلي', (ctx) => {
     ip = ip[0]
     ip = JSON.stringify(ip);
     console.log(ip)
-    if (ip != "[]") {
+    if (ip != "[]"&& ip!=undefined) {
 
       ip = ip.replace(/{|}|id|:|"|\[|]|ip|/g, "")
       console.log(ip);
@@ -400,7 +402,7 @@ bot.hears('هل تمطر؟', (ctx) => {
     ip = ip[0]
     ip = JSON.stringify(ip);
     console.log(ip)
-    if (ip != "[]") {
+    if (ip != "[]"&& ip!=undefined) {
 
       ip = ip.replace(/{|}|id|:|"|\[|]|ip|/g, "")
       console.log(ip);
@@ -454,7 +456,7 @@ bot.hears('هل التربة جافة؟', (ctx) => {
     ip = ip[0]
     ip = JSON.stringify(ip);
     console.log(ip)
-    if (ip != "[]") {
+    if (ip != "[]"&& ip!=undefined) {
 
       ip = ip.replace(/{|}|id|:|"|\[|]|ip|/g, "")
       console.log(ip);
@@ -480,6 +482,9 @@ bot.hears('هل التربة جافة؟', (ctx) => {
           ctx.reply("كلا , التربة غير جافة");
         }
         if (str == 1) {
+          ctx.reply("التربة متوسطة الرطوبة");
+        }
+        if (str == 2) {
           ctx.reply("نعم , التربة جافة");
         }
       });
@@ -507,7 +512,7 @@ bot.hears('هل الجو مناسب للريّ؟', (ctx) => {
     ip = ip[0]
     ip = JSON.stringify(ip);
     console.log(ip)
-    if (ip != "[]") {
+    if (ip != "[]"&& ip!=undefined) {
 
       ip = ip.replace(/{|}|id|:|"|\[|]|ip|/g, "")
       console.log(ip);
@@ -562,7 +567,7 @@ bot.hears('وضع الريّ الحالي', (ctx) => {
     ip = ip[0]
     ip = JSON.stringify(ip);
     console.log(ip)
-    if (ip != "[]") {
+    if (ip != "[]"&& ip!=undefined) {
 
       ip = ip.replace(/{|}|id|:|"|\[|]|ip|/g, "")
       console.log(ip);
